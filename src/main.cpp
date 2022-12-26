@@ -1,20 +1,29 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <FastLED.h>
+#include <string>
 
-// Update these with values suitable for your network.
+// LED
+#define NUM_LEDS 120
+#define DATA_PIN D4
+CRGB leds[NUM_LEDS];
+CRGB previousColor;
 
-const char* ssid = "...";
-const char* password = "...";
-const char* mqtt_server = "192.168.0.129";
-
+// WIFI
+const char *ssid = "...";
+const char *password = "...";
+const char *mqtt_server = "192.168.0.129";
 WiFiClient espClient;
+
+// MQTT
+#define MSG_BUFFER_SIZE (50)
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
-#define MSG_BUFFER_SIZE	(50)
 char msg[MSG_BUFFER_SIZE];
 int value = 0;
 
-void setup_wifi() {
+void setup_wifi()
+{
 
   delay(10);
   // We start by connecting to a WiFi network
@@ -25,7 +34,8 @@ void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -38,31 +48,60 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
+void callback(char *topic, byte *payload, unsigned int length)
+{
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+
+  char message[(sizeof payload) + 1];
+  memcpy(message, payload, sizeof payload);
+  message[sizeof payload] = 0; // Null termination.
+
+  std::string messageString = convertToString(message, sizeof message);
+
+  if (messageString.find("power") != std::string::npos)
+  {
+    if (messageString.find("on") != std::string::npos)
+    {
+      changePower(true);
+    }
+    if (messageString.find("off") != std::string::npos)
+    {
+      changePower(false);
+    }
   }
-  Serial.println();
 }
 
-void reconnect() {
+std::string convertToString(char *a, int size)
+{
+  int i;
+  std::string str = "";
+  for (i = 0; i < size; i++)
+  {
+    str = str + a[i];
+  }
+  return str;
+}
+
+void reconnect()
+{
   // Loop until we're reconnected
-  while (!client.connected()) {
+  while (!client.connected())
+  {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
-    if (client.connect(clientId.c_str())) {
+    if (client.connect(clientId.c_str()))
+    {
       Serial.println("connected");
-      // Once connected, publish an announcement...
-      client.publish("outTopic", "hello world");
       // ... and resubscribe
       client.subscribe("smart_home/rooms/schlafzimmer/led/1");
-    } else {
+    }
+    else
+    {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
@@ -72,16 +111,46 @@ void reconnect() {
   }
 }
 
-void setup() {
+void changePower(bool on)
+{
+  CRGB color = previousColor;
+  if (!on)
+  {
+    CRGB color = CRGB::Black;
+  }
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = color;
+  }
+  FastLED.show();
+  delay(500);
+}
+
+void changeLedColor(CRGB color)
+{
+  previousColor = color;
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = color;
+  }
+  FastLED.show();
+  delay(500);
+}
+
+void setup()
+{
   Serial.begin(115200);
+  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS); // GRB ordering is typical
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 }
 
-void loop() {
+void loop()
+{
 
-  if (!client.connected()) {
+  if (!client.connected())
+  {
     reconnect();
   }
   client.loop();
