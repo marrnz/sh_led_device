@@ -8,6 +8,8 @@
 #define DATA_PIN D4
 CRGB leds[NUM_LEDS];
 CRGB previousColor = CRGB::Red;
+bool writeOngoing = false;
+bool showLeds = false;
 
 // WIFI
 const char *ssid = "...";
@@ -50,15 +52,15 @@ void setup_wifi()
 
 void changePower(bool on)
 {
-  //Serial.println("Changing Power");
+  // Serial.println("Changing Power");
   CRGB color = CRGB::Red;
   if (!on)
   {
-    //Serial.println("Power off!");
+    // Serial.println("Power off!");
     color = CRGB::Black;
   }
-  //Serial.print("Color: ");
-  //Serial.println(color);
+  // Serial.print("Color: ");
+  // Serial.println(color);
   for (int i = 0; i < NUM_LEDS; i++)
   {
     leds[i] = color;
@@ -76,18 +78,20 @@ void changeLedColor(CRGB color)
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
-  //Serial.print("Message arrived [");
-  //Serial.print(topic);
-  //Serial.println("] ");
+  // Serial.print("Message arrived [");
+  // Serial.print(topic);
+  // Serial.println("] ");
 
-  //unsigned long time = micros();
+  // unsigned long time = micros();
   std::string message = "";
-  for (int i = 0; i < length; i++) {
+  for (int i = 0; i < length; i++)
+  {
     message = message + (char)payload[i];
   }
   Serial.println();
   if (message.find("power") != std::string::npos)
   {
+    writeOngoing = true;
     if (message.find("on") != std::string::npos)
     {
       changePower(true);
@@ -99,6 +103,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   if (message.find("color") != std::string::npos)
   {
+    writeOngoing = true;
     std::string colorString = message.substr(5);
     Serial.print("Color string: ");
     Serial.println(colorString.c_str());
@@ -107,9 +112,10 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.println(hexAsInt);
     changeLedColor(CRGB(hexAsInt));
   }
-  FastLED.show();
-  //Serial.print("Time taken: ");
-  //Serial.println(micros() - time);
+  // Serial.print("Time taken: ");
+  // Serial.println(micros() - time);
+  writeOngoing = false;
+  showLeds = true;
 }
 
 void reconnect()
@@ -150,6 +156,8 @@ void setup()
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+  FastLED.show();
+  delay(500);
 }
 
 void loop()
@@ -158,5 +166,11 @@ void loop()
   {
     reconnect();
   }
-  client.loop();
+  if (showLeds) {
+    FastLED.show();
+  }
+  if (!writeOngoing)
+  {
+    client.loop();
+  }
 }
