@@ -48,40 +48,60 @@ void setup_wifi()
   Serial.println(WiFi.localIP());
 }
 
+void changePower(bool on)
+{
+  Serial.println("Changing Power");
+  CRGB color = previousColor;
+  if (!on)
+  {
+    Serial.println("Power off!");
+    color = CRGB::Black;
+  }
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = color;
+  }
+  FastLED.show();
+  delay(500);
+}
+
+void changeLedColor(CRGB color)
+{
+  Serial.println("Changing Color");
+  previousColor = color;
+  Serial.print("Changing Color to: ");
+  Serial.println(color);
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = color;
+  }
+  FastLED.show();
+  delay(500);
+}
+
 void callback(char *topic, byte *payload, unsigned int length)
 {
   Serial.print("Message arrived [");
   Serial.print(topic);
-  Serial.print("] ");
+  Serial.println("] ");
 
-  char message[(sizeof payload) + 1];
-  memcpy(message, payload, sizeof payload);
-  message[sizeof payload] = 0; // Null termination.
+  std::string message = "";
+  for (int i = 0; i < length; i++) {
+    message = message + (char)payload[i];
+  }
+  Serial.println();
 
-  std::string messageString = convertToString(message, sizeof message);
-
-  if (messageString.find("power") != std::string::npos)
+  if (message.find("power") != std::string::npos)
   {
-    if (messageString.find("on") != std::string::npos)
+    if (message.find("on") != std::string::npos)
     {
       changePower(true);
     }
-    if (messageString.find("off") != std::string::npos)
+    if (message.find("off") != std::string::npos)
     {
       changePower(false);
     }
   }
-}
-
-std::string convertToString(char *a, int size)
-{
-  int i;
-  std::string str = "";
-  for (i = 0; i < size; i++)
-  {
-    str = str + a[i];
-  }
-  return str;
 }
 
 void reconnect()
@@ -109,32 +129,6 @@ void reconnect()
       delay(5000);
     }
   }
-}
-
-void changePower(bool on)
-{
-  CRGB color = previousColor;
-  if (!on)
-  {
-    CRGB color = CRGB::Black;
-  }
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-    leds[i] = color;
-  }
-  FastLED.show();
-  delay(500);
-}
-
-void changeLedColor(CRGB color)
-{
-  previousColor = color;
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-    leds[i] = color;
-  }
-  FastLED.show();
-  delay(500);
 }
 
 void setup()
