@@ -80,6 +80,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   //Serial.print(topic);
   //Serial.println("] ");
 
+  //unsigned long time = micros();
   std::string message = "";
   for (int i = 0; i < length; i++) {
     message = message + (char)payload[i];
@@ -96,6 +97,19 @@ void callback(char *topic, byte *payload, unsigned int length)
       changePower(false);
     }
   }
+  if (message.find("color") != std::string::npos)
+  {
+    std::string colorString = message.substr(5);
+    Serial.print("Color string: ");
+    Serial.println(colorString.c_str());
+    unsigned int hexAsInt = std::stoul(colorString, nullptr, 16);
+    Serial.print("Unsinged int: ");
+    Serial.println(hexAsInt);
+    changeLedColor(CRGB(hexAsInt));
+  }
+  FastLED.show();
+  //Serial.print("Time taken: ");
+  //Serial.println(micros() - time);
 }
 
 void reconnect()
@@ -144,7 +158,5 @@ void loop()
   {
     reconnect();
   }
-  FastLED.show();
-  delay(500);
   client.loop();
 }
