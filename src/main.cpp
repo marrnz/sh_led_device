@@ -7,7 +7,7 @@
 #define NUM_LEDS 120
 #define DATA_PIN D4
 CRGB leds[NUM_LEDS];
-CRGB previousColor;
+CRGB previousColor = CRGB::Red;
 
 // WIFI
 const char *ssid = "...";
@@ -50,47 +50,41 @@ void setup_wifi()
 
 void changePower(bool on)
 {
-  Serial.println("Changing Power");
-  CRGB color = previousColor;
+  //Serial.println("Changing Power");
+  CRGB color = CRGB::Red;
   if (!on)
   {
-    Serial.println("Power off!");
+    //Serial.println("Power off!");
     color = CRGB::Black;
   }
+  //Serial.print("Color: ");
+  //Serial.println(color);
   for (int i = 0; i < NUM_LEDS; i++)
   {
     leds[i] = color;
   }
-  FastLED.show();
-  delay(500);
 }
 
 void changeLedColor(CRGB color)
 {
-  Serial.println("Changing Color");
   previousColor = color;
-  Serial.print("Changing Color to: ");
-  Serial.println(color);
   for (int i = 0; i < NUM_LEDS; i++)
   {
     leds[i] = color;
   }
-  FastLED.show();
-  delay(500);
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.println("] ");
+  //Serial.print("Message arrived [");
+  //Serial.print(topic);
+  //Serial.println("] ");
 
   std::string message = "";
   for (int i = 0; i < length; i++) {
     message = message + (char)payload[i];
   }
   Serial.println();
-
   if (message.find("power") != std::string::npos)
   {
     if (message.find("on") != std::string::npos)
@@ -133,8 +127,12 @@ void reconnect()
 
 void setup()
 {
-  Serial.begin(115200);
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS); // GRB ordering is typical
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB::Yellow;
+  }
+  Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -142,10 +140,11 @@ void setup()
 
 void loop()
 {
-
   if (!client.connected())
   {
     reconnect();
   }
+  FastLED.show();
+  delay(500);
   client.loop();
 }
