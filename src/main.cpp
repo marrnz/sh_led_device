@@ -12,9 +12,9 @@ bool writeOngoing = false;
 bool showLeds = false;
 
 // WIFI
-const char *ssid = "...";
-const char *password = "...";
-const char *mqtt_server = "192.168.0.129";
+const char *ssid = "";
+const char *password = "";
+const char *mqtt_server = "192.168.0.192";
 WiFiClient espClient;
 
 // MQTT
